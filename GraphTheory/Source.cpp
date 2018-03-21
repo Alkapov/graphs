@@ -17,9 +17,10 @@ const std::string TEMP_FILE = "../samples/temp.txt";
 int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
-	bool check;
-	int s = graph.checkEuler(check);
-	std::cout << check << " " << s << std::endl;
+	auto ans = graph.getEuleranTourFleri();
+	for(auto v: ans) {
+		std::cout << v << " ";
+	}
 	//Graph tree = graph.getSpaingTreeBoruvka();
 	//			
 	//tree.transformToListOfEdges();

@@ -349,7 +349,6 @@ public:
 		return degrees;
 	}
 
-
 	std::vector<int> getComponentsSizes() {
 		Dsu dsu(vertices_count_ + 1);
 		for (unsigned int u = 1; u <= vertices_count_; ++u) {
@@ -361,6 +360,71 @@ public:
 		for (unsigned int i = 1; i <= vertices_count_; ++i)
 			++sizes[dsu.find(i)];
 		return sizes;
+	}
+
+	void dfs(int v, int & timer, std::vector<bool> & visited, std::vector<int> & tin, std::vector<int> & fup, std::set<std::pair<int ,int>> & bridges, const int parent = -1) {
+		visited[v] = true;
+		tin[v] = fup[v] = timer++;
+		for(const auto edge: graph_[v]) {
+			auto to = edge.first;
+			if (to == parent) 
+				continue;
+			if (visited[to])
+				fup[v] = std::min(fup[v], tin[to]);
+			else {
+				dfs(to, timer, visited, tin, fup, bridges, v);
+				fup[v] = std::min(fup[v], fup[to]);
+				if (fup[to] > tin[v])
+					bridges.emplace(v, to);
+			}
+		}
+	}
+
+	bool isBridge(const int u, const int v) {
+		std::vector<bool> visited(vertices_count_ + 1);
+		std::vector<int> tin(vertices_count_ + 1);
+		std::vector<int> fup(vertices_count_ + 1);
+		std::set<std::pair<int, int>> bridges;
+		int timer = 0;
+		dfs(v, timer, visited, tin, fup, bridges);
+		for(const auto bridge: bridges) {
+			if ((bridge.first == u && bridge.second == v) || (bridge.first == v && bridge.second == u))
+				return true;
+		}
+		return false;
+	}
+
+	std::vector<int> getEuleranTourFleri(int u) {
+		std::vector<int> res;
+		res.push_back(u);
+		std::vector<int> degrees = getVerticesDegrees();
+		while (true) {
+			const int deg = degrees[u];
+			if (!deg)
+				break;
+			bool moved = false;
+			for(const auto edge: graph_[u]) {
+				const int v = edge.first;
+				if(deg == 1 || !isBridge(u, v)) {
+					moved = true;
+					removeEdge(u, v);
+					--degrees[u], --degrees[v];
+					u = v;
+					res.push_back(u);
+					break;
+				}
+			}
+			if(!moved) {
+				const int v = graph_[u].begin()->first;
+				removeEdge(u, v);
+				--degrees[u], --degrees[v];
+				u = v;
+				res.push_back(u);
+			}
+
+		}
+
+		return res;
 	}
 };
 
@@ -676,17 +740,27 @@ public:
 		if (odd_number > 2 || big_components > 1)
 			return 0;
 		circle_exist = odd_number == 0;
-		if(!circle_exist) {
-			int m = std::numeric_limits<int>::max();
-			int m_id = 1;
-			for(unsigned int i = 1; i < degrees.size(); ++i) {
-				if (degrees[i] > 0 && degrees[i] < m)
-					m_id = i, m = degrees[i];
+
+		for (unsigned int i = 1; i < degrees.size(); ++i) {
+			if (degrees[i] % 1) {
+				result = i;
+				break;
 			}
-			result = m_id;
 		}
+
 		return result;
 	}
+
+	std::vector<int> getEuleranTourFleri() const {
+		bool has_cycle = false;
+		const int v = checkEuler(has_cycle);
+		if (!v)
+			return std::vector<int>();
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		return g.getEuleranTourFleri(v);
+	}
+
 };
 
 
