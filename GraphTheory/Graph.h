@@ -87,8 +87,8 @@ public:
 
 	void feelGraph(IGraph *graph) override {
 		graph->reset(vertices_count_, is_directional_, is_weighted_);
-		for (unsigned int u = 0; u < vertices_count_; ++u)
-			for (unsigned int v = 0; v < vertices_count_; ++v)
+		for (unsigned int u = 1; u <= vertices_count_; ++u)
+			for (unsigned int v = 1; v <= vertices_count_; ++v)
 				if (graph_[u][v])
 					graph->addEdge(u, v, graph_[u][v]);
 	}
@@ -100,11 +100,11 @@ public:
 		{
 			char type;
 			stream >> type >> vertices_count_ >> is_directional_ >> is_weighted_;
-			graph_.resize(vertices_count_);
-			for (unsigned int i = 0; i < vertices_count_; ++i)
-				graph_[i].resize(vertices_count_);
-			for (unsigned int from = 0; from < vertices_count_; ++from)
-				for (unsigned int to = 0; to < vertices_count_; ++to)
+			graph_.resize(vertices_count_ + 1);
+			for (unsigned int i = 1; i <= vertices_count_; ++i)
+				graph_[i].resize(vertices_count_ + 1);
+			for (unsigned int from = 1; from <= vertices_count_; ++from)
+				for (unsigned int to = 1; to <= vertices_count_; ++to)
 					stream >> graph_[from][to];
 		}
 		stream.close();
@@ -116,10 +116,10 @@ public:
 		stream.open(file_name);
 		{
 			stream << "C " << vertices_count_ << std::endl << is_directional_ << " " << is_weighted_ << std::endl;
-			for (unsigned int from = 0; from < vertices_count_; ++from) {
-				for (unsigned int to = 0; to < vertices_count_; ++to) {
+			for (unsigned int from = 1; from <= vertices_count_; ++from) {
+				for (unsigned int to = 1; to <= vertices_count_; ++to) {
 					stream << graph_[from][to];
-					if (to + 1 == vertices_count_) stream << std::endl;
+					if (to == vertices_count_) stream << std::endl;
 				}
 			}
 		}
@@ -152,7 +152,7 @@ public:
 	}
 
 	void reset() override {
-		for (unsigned int i = 0; i < vertices_count_; ++i) graph_[i].clear();
+		for (unsigned int i = 1; i <= vertices_count_; ++i) graph_[i].clear();
 		graph_.clear();
 		vertices_count_ = 0;
 	}
@@ -162,8 +162,8 @@ public:
 		vertices_count_ = vertices_count;
 		is_directional_ = is_directional;
 		is_weighted_ = is_weighted;
-		graph_.resize(vertices_count);
-		for (unsigned int i = 0; i < vertices_count; ++i) graph_[i].resize(vertices_count);
+		graph_.resize(vertices_count + 1);
+		for (unsigned int i = 1; i <= vertices_count; ++i) graph_[i].resize(vertices_count + 1);
 	}
 };
 
@@ -224,15 +224,15 @@ public:
 		{
 			char type;
 			stream >> type >> vertices_count_ >> is_directional_ >> is_weighted_;
-			graph_.resize(vertices_count_);
+			graph_.resize(vertices_count_ + 1);
 			int weight = 1;
 			int to = 0;
 			std::string line;
-			for (unsigned int from = 0; from < vertices_count_; ++from) {
+			for (unsigned int from = 1; from <= vertices_count_; ++from) {
 				std::getline(stream, line);
 				std::vector<int> numbers = extractIntSequence(line);
 				for (unsigned int idx = 0; idx < numbers.size(); ++idx) {
-					to = numbers[idx] - 1;
+					to = numbers[idx];
 					if (is_weighted_) weight = numbers[++idx];
 					graph_[from][to] = weight;
 				}
@@ -246,11 +246,11 @@ public:
 		stream.open(file_name);
 		{
 			stream << "L " << vertices_count_ << std::endl << is_directional_ << " " << is_weighted_ << std::endl;
-			for (unsigned int i = 0; i < vertices_count_; ++i) {
+			for (unsigned int i = 1; i <= vertices_count_; ++i) {
 				bool is_first = true;
 				for (const auto to : graph_[i]) {
 					if (!is_first) stream << " ";
-					stream << to.first + 1;
+					stream << to.first;
 					if (is_weighted_) stream << to.second;
 					is_first = false;
 				}
@@ -278,7 +278,7 @@ public:
 	}
 
 	void reset() override {
-		for (unsigned int i = 0; i < vertices_count_; ++i) graph_[i].clear();
+		for (unsigned int i = 1; i <= vertices_count_; ++i) graph_[i].clear();
 		graph_.clear();
 		vertices_count_ = 0;
 	}
@@ -288,13 +288,13 @@ public:
 		vertices_count_ = vertices_count;
 		is_directional_ = is_directional;
 		is_weighted_ = is_weighted;
-		graph_.resize(vertices_count);
+		graph_.resize(vertices_count + 1);
 	}
 
 
 	void feelGraph(IGraph *graph) override {
 		graph->reset(vertices_count_, is_directional_, is_weighted_);
-		for (unsigned int u = 0; u < vertices_count_; ++u)
+		for (unsigned int u = 1; u <= vertices_count_; ++u)
 			for (const auto v : graph_[u]) {
 				graph->addEdge(u, v.first, v.second);
 				if (!is_directional_)
@@ -307,8 +307,8 @@ public:
 		AdjacencyListGraph* result = new AdjacencyListGraph(vertices_count_, 0, is_weighted_);
 
 		std::set<std::pair<int, int>> prior;
-		std::vector<int> dists(vertices_count_, std::numeric_limits<int>::max());
-		std::vector<int> ends(vertices_count_, -1);
+		std::vector<int> dists(vertices_count_ + 1, std::numeric_limits<int>::max());
+		std::vector<int> ends(vertices_count_ + 1, -1);
 		dists[0] = 0;
 		prior.emplace(0, 0);
 		while (!prior.empty()) {
@@ -320,7 +320,6 @@ public:
 				result->addEdge(v, ends[v], dists[v]);
 
 			for (auto &edge : graph_[v]) {
-
 				int to = edge.first, w = edge.second;
 				if (w < dists[to])
 				{
@@ -338,6 +337,31 @@ public:
 		return result;
 	}
 
+	std::vector<int> getVerticesDegrees() const {
+		std::vector<int> degrees(vertices_count_ + 1);
+		for (unsigned int i = 1; i <= vertices_count_; ++i) {
+			for (const auto v : graph_[i]) {
+				if (is_directional_)
+					++degrees[i];
+				++degrees[v.first];
+			}
+		}
+		return degrees;
+	}
+
+
+	std::vector<int> getComponentsSizes() {
+		Dsu dsu(vertices_count_ + 1);
+		for (unsigned int u = 1; u <= vertices_count_; ++u) {
+			for (const auto v : graph_[u]) {
+				dsu.unite(u, v.first);
+			}
+		}
+		std::vector<int> sizes(vertices_count_ + 1);
+		for (unsigned int i = 1; i <= vertices_count_; ++i)
+			++sizes[dsu.find(i)];
+		return sizes;
+	}
 };
 
 class EdgeListGraph : public IGraph {
@@ -362,11 +386,11 @@ public:
 			unsigned int edges_count;
 			stream >> type >> vertices_count_ >> edges_count >> is_directional_ >> is_weighted_;
 			int from, to, weight = 1;
-			for (unsigned int i = 0; i < edges_count; ++i) {
+			for (unsigned int i = 1; i <= edges_count; ++i) {
 				stream >> from >> to;
 				if (is_weighted_) stream >> weight;
-				graph_.emplace(std::make_pair(from - 1, to - 1), weight);
-				if (!is_directional_) graph_.emplace(std::make_pair(to - 1, from - 1), weight);
+				graph_.emplace(std::make_pair(from, to), weight);
+				if (!is_directional_) graph_.emplace(std::make_pair(to, from), weight);
 			}
 		}
 		stream.close();
@@ -447,7 +471,7 @@ public:
 			return current.second < other.second;
 		});
 
-		Dsu dsu(vertices_count_);
+		Dsu dsu(vertices_count_ + 1);
 		for (auto& edge : edges) {
 			const int from = edge.first.first;
 			const int to = edge.first.second;
@@ -469,9 +493,9 @@ public:
 		std::sort(edges.begin(), edges.end(), [](const Edge & current, const Edge & other) {
 			return current.second < other.second;
 		});
-		Dsu dsu(vertices_count_);
-		std::vector<int> steps(vertices_count_);
-		std::vector<std::pair<int, std::pair<int, int>>> min_vals(vertices_count_);
+		Dsu dsu(vertices_count_ + 1);
+		std::vector<int> steps(vertices_count_ + 1);
+		std::vector<std::pair<int, std::pair<int, int>>> min_vals(vertices_count_ + 1);
 		int step = 0;
 		bool state_changed = true;
 		while (state_changed) {
@@ -483,20 +507,20 @@ public:
 				const int to = edge.first.second;
 				const int weight = edge.second;
 				const unsigned int parent = dsu.find(from);
-			
+
 				if (dsu.find(to) != parent) {
 					if (steps[parent] != step) {
 						steps[parent] = step;
 						min_vals[parent] = std::make_pair(weight, std::make_pair(from, to));
 					}
-					if(weight < min_vals[parent].first) {
+					if (weight < min_vals[parent].first) {
 						min_vals[parent] = std::make_pair(weight, std::make_pair(from, to));
 					}
 				}
 			}
 
-			for(unsigned int i = 0; i < min_vals.size(); ++i) {
-				if(steps[i] == step) {
+			for (unsigned int i = 1; i <= vertices_count_; ++i) {
+				if (steps[i] == step) {
 					result->addEdge(min_vals[i].second.first, min_vals[i].second.second, min_vals[i].first);
 					dsu.unite(min_vals[i].second.first, min_vals[i].second.second);
 					state_changed = true;
@@ -507,6 +531,9 @@ public:
 
 		return result;
 	}
+
+
+
 
 };
 
@@ -586,15 +613,15 @@ public:
 	}
 
 	void addEdge(const int from, const int to, const int weight) override {
-		graph->addEdge(from - 1, to - 1, weight);
+		graph->addEdge(from, to, weight);
 	}
 
 	void removeEdge(const int from, const int to) override {
-		graph->removeEdge(from - 1, to - 1);
+		graph->removeEdge(from, to);
 	}
 
 	int changeEdge(const int from, const int to, const int new_weight) override {
-		return graph->changeEdge(from - 1, to - 1, new_weight);
+		return graph->changeEdge(from, to, new_weight);
 	}
 
 	void reset() override {
@@ -610,25 +637,56 @@ public:
 		graph->feelGraph(graph);
 	}
 
-	Graph getSpaingTreePrima() {
-		transformToAdjList();
-		AdjacencyListGraph * g = dynamic_cast<AdjacencyListGraph*>(graph);
-		return Graph(static_cast<IGraph *>(g->getSpaingTreePrima()));
+	Graph getSpaingTreePrima() const {
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		return Graph(static_cast<IGraph *>(g.getSpaingTreePrima()));
 	}
 
-	Graph getSpaingTreeKruscal() {
-		transformToListOfEdges();
-		EdgeListGraph * g = dynamic_cast<EdgeListGraph*>(graph);
-		return Graph(static_cast<IGraph*>(g->getSpaingTreeKruscal()));
+	Graph getSpaingTreeKruscal() const {
+		EdgeListGraph g = EdgeListGraph();
+		graph->feelGraph(&g);
+		return Graph(static_cast<IGraph*>(g.getSpaingTreeKruscal()));
 	}
 
-	Graph getSpaingTreeBoruvka() {
-		transformToListOfEdges();
-		EdgeListGraph * g = dynamic_cast<EdgeListGraph*>(graph);
-		return Graph(static_cast<IGraph*>(g->getSpaingTreeBoruvka()));
+	Graph getSpaingTreeBoruvka() const {
+		EdgeListGraph g = EdgeListGraph();
+		graph->feelGraph(&g);
+		return Graph(static_cast<IGraph*>(g.getSpaingTreeBoruvka()));
 	}
 
+	int checkEuler(bool &circle_exist) const {
+		circle_exist = false;
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
 
+		std::vector<int> degrees = g.getVerticesDegrees();
+		std::vector<int> components_sizes = g.getComponentsSizes();
+
+		int big_components = 0;
+		int odd_number = 0;
+		int result = 1;
+		for (unsigned int i = 1; i < degrees.size(); ++i) {
+			if (degrees[i] % 2)
+				++odd_number;
+			else
+				result = i;
+			big_components += components_sizes[i] > 1;
+		}
+		if (odd_number > 2 || big_components > 1)
+			return 0;
+		circle_exist = odd_number == 0;
+		if(!circle_exist) {
+			int m = std::numeric_limits<int>::max();
+			int m_id = 1;
+			for(unsigned int i = 1; i < degrees.size(); ++i) {
+				if (degrees[i] > 0 && degrees[i] < m)
+					m_id = i, m = degrees[i];
+			}
+			result = m_id;
+		}
+		return result;
+	}
 };
 
 

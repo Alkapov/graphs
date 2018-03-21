@@ -17,14 +17,16 @@ const std::string TEMP_FILE = "../samples/temp.txt";
 int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
+	bool check;
+	int s = graph.checkEuler(check);
+	std::cout << check << " " << s << std::endl;
+	//Graph tree = graph.getSpaingTreeBoruvka();
+	//			
+	//tree.transformToListOfEdges();
 
-	Graph tree = graph.getSpaingTreeBoruvka();
-				
-	tree.transformToListOfEdges();
-
-	//    graph.addEdge(1, 1, 1000);
-	//    printf("%d", graph.changeEdge(1, 2, 12200));
-	tree.writeGraph(TEMP_FILE);
+	////    graph.addEdge(1, 1, 1000);
+	////    printf("%d", graph.changeEdge(1, 2, 12200));
+	//tree.writeGraph(TEMP_FILE);
 
 	return 0;
 }
