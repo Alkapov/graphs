@@ -2,7 +2,7 @@
 
 #include "Graph.h"
 
-#if _DEBUG
+#if _MSC_VER
 const std::string ADJACENCY_MATRIX = "samples/adjacency_matrix.txt";
 const std::string ADJACENCY_LIST = "samples/adjacency_list.txt";
 const std::string EDGES_LIST = "samples/edges_list.txt";
@@ -18,8 +18,8 @@ int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
 
-	Graph tree = graph.getSpaingTreePrima();
-
+	Graph tree = graph.getSpaingTreeBoruvka();
+				
 	tree.transformToListOfEdges();
 
 	//    graph.addEdge(1, 1, 1000);

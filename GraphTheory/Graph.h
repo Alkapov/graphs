@@ -7,7 +7,6 @@
 #include <vector>
 #include <algorithm>
 #include <map>
-#include <tuple>
 #include <set>
 #include <fstream>
 
@@ -241,7 +240,7 @@ public:
 		}
 		stream.close();
 	}
-	
+
 	void writeGraph(const std::string &file_name) override {
 		std::ofstream stream;
 		stream.open(file_name);
@@ -312,12 +311,16 @@ public:
 		std::vector<int> ends(vertices_count_, -1);
 		dists[0] = 0;
 		prior.emplace(0, 0);
-		for (unsigned int i = 0; i < vertices_count_; ++i) {
+		while (!prior.empty()) {
 			if (prior.empty())
 				exit(1); // graph has few cc
 			const int v = prior.begin()->second;
 			prior.erase(prior.begin());
+			if (ends[v] != -1)
+				result->addEdge(v, ends[v], dists[v]);
+
 			for (auto &edge : graph_[v]) {
+
 				int to = edge.first, w = edge.second;
 				if (w < dists[to])
 				{
@@ -332,9 +335,6 @@ public:
 
 		}
 
-		for (unsigned int i = 0; i < vertices_count_; ++i)
-			if (ends[i] != -1)
-				result->addEdge(i, ends[i], dists[i]);
 		return result;
 	}
 
@@ -342,7 +342,7 @@ public:
 
 class EdgeListGraph : public IGraph {
 
-	std::vector<std::tuple<int, int, int>> graph_;
+	std::map<std::pair<int, int>, int> graph_;
 	unsigned int vertices_count_ = 0;
 	unsigned int is_directional_ = 0;
 	unsigned int is_weighted_ = 0;
@@ -362,12 +362,12 @@ public:
 			unsigned int edges_count;
 			stream >> type >> vertices_count_ >> edges_count >> is_directional_ >> is_weighted_;
 			int from, to, weight = 1;
-			graph_.reserve(edges_count);
 			for (unsigned int i = 0; i < edges_count; ++i) {
 				stream >> from >> to;
 				if (is_weighted_) stream >> weight;
-				graph_.emplace_back(from - 1, to - 1, weight);
-			}		
+				graph_.emplace(std::make_pair(from - 1, to - 1), weight);
+				if (!is_directional_) graph_.emplace(std::make_pair(to - 1, from - 1), weight);
+			}
 		}
 		stream.close();
 	}
@@ -377,9 +377,10 @@ public:
 		stream.open(file_name);
 		{
 			stream << "E " << vertices_count_ << " " << graph_.size() << std::endl << is_directional_ << " " << is_weighted_ << std::endl;
-			int from, to, weight;
 			for (const auto edge : graph_) {
-				std::tie(from, to, weight) = edge;
+				int from = edge.first.first;
+				int to = edge.first.second;
+				const int weight = edge.second;
 				++from, ++to;
 				stream << from << " " << to;
 				if (is_weighted_) stream << " " << weight;
@@ -390,23 +391,30 @@ public:
 	}
 
 	void addEdge(int from, int to, int weight) override {
-		graph_.emplace_back(from, to, weight);
-
+		graph_.emplace(std::make_pair(from, to), weight);
+		if (!is_directional_) graph_.emplace(std::make_pair(to, from), weight);
 	}
 
 	void removeEdge(int from, int to) override {
-		const auto edge = std::find_if(graph_.begin(), graph_.end(), [from, to](std::tuple<int, int, int> &edge) {
-			return (std::get<0>(edge) == from) && (std::get<1>(edge) == to);
-		});
-		graph_.erase(edge);
+		auto edge = graph_.find(std::make_pair(from, to));
+		if (edge != graph_.end())
+			graph_.erase(edge);
+		if (!is_directional_) {
+			edge = graph_.find(std::make_pair(to, from));
+			if (edge != graph_.end())
+				graph_.erase(edge);
+		}
 	}
 
-	int changeEdge(int from, int to, int new_weight) override {
-		auto edge = std::find_if(graph_.begin(), graph_.end(), [from, to](std::tuple<int, int, int> &edge) {
-			return (std::get<0>(edge) == from) && (std::get<1>(edge) == to);
-		});
-		std::swap(std::get<2>(*edge), new_weight);
-		return new_weight;
+	int changeEdge(int from, int to, const int new_weight) override {
+		auto edge = graph_.find(std::make_pair(from, to));
+		const int old_weight = edge->second;
+		edge->second = new_weight;
+		if (!is_directional_) {
+			edge = graph_.find(std::make_pair(to, from));
+			edge->second = new_weight;
+		}
+		return old_weight;
 	}
 
 	void reset() override {
@@ -422,12 +430,84 @@ public:
 
 	void feelGraph(IGraph *graph) override {
 		graph->reset(vertices_count_, is_directional_, is_weighted_);
-		int u, v, w;
-		for (auto &item : graph_) {
-			std::tie(u, v, w) = item;
+		for (const auto item : graph_) {
+			const int u = item.first.first;
+			const int v = item.first.second;
+			const int w = item.second;
 			graph->addEdge(u, v, w);
 		}
 	}
+
+	AdjacencyListGraph* getSpaingTreeKruscal() {
+		AdjacencyListGraph * result = new AdjacencyListGraph(vertices_count_, 0, is_weighted_);
+
+		typedef std::pair<std::pair<int, int>, int> Edge;
+		std::vector<Edge> edges(graph_.begin(), graph_.end());
+		std::sort(edges.begin(), edges.end(), [](const Edge & current, const Edge & other) {
+			return current.second < other.second;
+		});
+
+		Dsu dsu(vertices_count_);
+		for (auto& edge : edges) {
+			const int from = edge.first.first;
+			const int to = edge.first.second;
+			if (dsu.find(to) != dsu.find(from)) {
+				dsu.unite(from, to);
+				result->addEdge(from, to, edge.second);
+			}
+		}
+
+		return result;
+	}
+
+
+	AdjacencyListGraph* getSpaingTreeBoruvka() {
+		AdjacencyListGraph * result = new AdjacencyListGraph(vertices_count_, 0, is_weighted_);
+
+		typedef std::pair<std::pair<int, int>, int> Edge;
+		std::vector<Edge> edges(graph_.begin(), graph_.end());
+		std::sort(edges.begin(), edges.end(), [](const Edge & current, const Edge & other) {
+			return current.second < other.second;
+		});
+		Dsu dsu(vertices_count_);
+		std::vector<int> steps(vertices_count_);
+		std::vector<std::pair<int, std::pair<int, int>>> min_vals(vertices_count_);
+		int step = 0;
+		bool state_changed = true;
+		while (state_changed) {
+			state_changed = false;
+			++step;
+
+			for (auto& edge : edges) {
+				const int from = edge.first.first;
+				const int to = edge.first.second;
+				const int weight = edge.second;
+				const unsigned int parent = dsu.find(from);
+			
+				if (dsu.find(to) != parent) {
+					if (steps[parent] != step) {
+						steps[parent] = step;
+						min_vals[parent] = std::make_pair(weight, std::make_pair(from, to));
+					}
+					if(weight < min_vals[parent].first) {
+						min_vals[parent] = std::make_pair(weight, std::make_pair(from, to));
+					}
+				}
+			}
+
+			for(unsigned int i = 0; i < min_vals.size(); ++i) {
+				if(steps[i] == step) {
+					result->addEdge(min_vals[i].second.first, min_vals[i].second.second, min_vals[i].first);
+					dsu.unite(min_vals[i].second.first, min_vals[i].second.second);
+					state_changed = true;
+				}
+			}
+
+		}
+
+		return result;
+	}
+
 };
 
 
@@ -535,12 +615,18 @@ public:
 		AdjacencyListGraph * g = dynamic_cast<AdjacencyListGraph*>(graph);
 		return Graph(static_cast<IGraph *>(g->getSpaingTreePrima()));
 	}
-	//    Graph getSpaingTreeKruscal() {
-	//
-	//    }
-	//    Graph getSpaingTreeBoruvka() {
-	//
-	//    }
+
+	Graph getSpaingTreeKruscal() {
+		transformToListOfEdges();
+		EdgeListGraph * g = dynamic_cast<EdgeListGraph*>(graph);
+		return Graph(static_cast<IGraph*>(g->getSpaingTreeKruscal()));
+	}
+
+	Graph getSpaingTreeBoruvka() {
+		transformToListOfEdges();
+		EdgeListGraph * g = dynamic_cast<EdgeListGraph*>(graph);
+		return Graph(static_cast<IGraph*>(g->getSpaingTreeBoruvka()));
+	}
 
 
 };
