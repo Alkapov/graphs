@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 #include <fstream>
+#include <stack>
 
 class Dsu {
 	std::vector<unsigned int> parent_;
@@ -426,6 +427,26 @@ public:
 
 		return res;
 	}
+
+	std::vector<int> getEuleranTourEffective(int u) {
+		std::vector<int> res;
+		std::stack<int> stack;
+		stack.push(u);
+		while (!stack.empty()) {
+			u = stack.top();
+			for (auto& edge : graph_[u]) {
+				int v = edge.first;
+				stack.push(v);
+				removeEdge(u, v);
+				break;
+			}
+			if (u == stack.top()) {
+				stack.pop();
+				res.push_back(u);
+			}
+		}
+		return res;
+	}
 };
 
 class EdgeListGraph : public IGraph {
@@ -761,6 +782,16 @@ public:
 		return g.getEuleranTourFleri(v);
 	}
 
+
+	std::vector<int> getEuleranTourEffective() const {
+		bool has_cycle = false;
+		const int v = checkEuler(has_cycle);
+		if (!v)
+			return std::vector<int>();
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		return g.getEuleranTourEffective(v);
+	}
 };
 
 

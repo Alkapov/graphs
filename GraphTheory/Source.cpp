@@ -17,7 +17,8 @@ const std::string TEMP_FILE = "../samples/temp.txt";
 int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
-	auto ans = graph.getEuleranTourFleri();
+	//auto ans = graph.getEuleranTourFleri();
+	auto ans = graph.getEuleranTourEffective();
 	for(auto v: ans) {
 		std::cout << v << " ";
 	}
