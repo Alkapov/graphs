@@ -121,6 +121,7 @@
     <ClInclude Include="Graph.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="output.txt" />
     <Text Include="samples\adjacency_list.txt" />
     <Text Include="samples\adjacency_matrix.txt" />
     <Text Include="samples\edges_list.txt" />

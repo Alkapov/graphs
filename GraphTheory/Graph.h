@@ -10,6 +10,7 @@
 #include <set>
 #include <fstream>
 #include <stack>
+#include <queue>
 
 class Dsu {
 	std::vector<unsigned int> parent_;
@@ -363,12 +364,12 @@ public:
 		return sizes;
 	}
 
-	void dfs(int v, int & timer, std::vector<bool> & visited, std::vector<int> & tin, std::vector<int> & fup, std::set<std::pair<int ,int>> & bridges, const int parent = -1) {
+	void dfs(int v, int & timer, std::vector<bool> & visited, std::vector<int> & tin, std::vector<int> & fup, std::set<std::pair<int, int>> & bridges, const int parent = -1) {
 		visited[v] = true;
 		tin[v] = fup[v] = timer++;
-		for(const auto edge: graph_[v]) {
+		for (const auto edge : graph_[v]) {
 			auto to = edge.first;
-			if (to == parent) 
+			if (to == parent)
 				continue;
 			if (visited[to])
 				fup[v] = std::min(fup[v], tin[to]);
@@ -388,7 +389,7 @@ public:
 		std::set<std::pair<int, int>> bridges;
 		int timer = 0;
 		dfs(v, timer, visited, tin, fup, bridges);
-		for(const auto bridge: bridges) {
+		for (const auto bridge : bridges) {
 			if ((bridge.first == u && bridge.second == v) || (bridge.first == v && bridge.second == u))
 				return true;
 		}
@@ -404,9 +405,9 @@ public:
 			if (!deg)
 				break;
 			bool moved = false;
-			for(const auto edge: graph_[u]) {
+			for (const auto edge : graph_[u]) {
 				const int v = edge.first;
-				if(deg == 1 || !isBridge(u, v)) {
+				if (deg == 1 || !isBridge(u, v)) {
 					moved = true;
 					removeEdge(u, v);
 					--degrees[u], --degrees[v];
@@ -415,7 +416,7 @@ public:
 					break;
 				}
 			}
-			if(!moved) {
+			if (!moved) {
 				const int v = graph_[u].begin()->first;
 				removeEdge(u, v);
 				--degrees[u], --degrees[v];
@@ -445,6 +446,92 @@ public:
 				res.push_back(u);
 			}
 		}
+		return res;
+	}
+
+	int checkBipart(std::vector<char> &marks) const {
+		std::queue<int> qu;
+		if (vertices_count_ < 2)
+			return 0;
+		for (unsigned int i = 1; i <= vertices_count_; ++i) {
+			marks[i] = 'u';
+		}
+		for (unsigned int i = 1; i <= vertices_count_; ++i) {
+			if (marks[i] == 'u') {
+				qu.push(i);
+				marks[i] = 'a';
+				while (!qu.empty()) {
+					const int v = qu.front(); qu.pop();
+					for (const auto edge : graph_[v]) {
+						const int to = edge.first;
+						if (marks[to] == 'u') {
+							marks[to] = marks[v] == 'a' ? 'b' : 'a';
+						}
+						else if (marks[to] == marks[v]) {
+							return 0;
+						}
+					}
+				}
+			}
+		}
+		return 1;
+	}
+
+	std::vector<bool> getAnyMatching(std::vector<int> & left_part, std::vector<int> & matching) const {
+		std::vector<bool> used(vertices_count_  + 1);
+		for(auto u: left_part) {
+			for(const auto edge: graph_[u]) {
+				if(matching[edge.first] == -1) {
+					matching[edge.first] = u;
+					used[u] = true;
+					break;
+				}
+			}
+		}
+		return used;
+	}
+
+	bool tryKuhn(int v, std::vector<int> & colors, std::vector<int> & matching, int color) const {
+		if (colors[v] == color) return false;
+		colors[v] = color;
+		for(const auto edge: graph_[v]) {
+			const int to = edge.first;
+			if(matching[to] == -1 || tryKuhn(matching[to], colors, matching, color)) {
+				matching[to] = v;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	std::vector<std::pair<int, int> > getMaximumMatchingBipart() const {
+		std::vector<std::pair<int, int> > res;
+		std::vector<char> marks(vertices_count_ + 1);
+		if(!checkBipart(marks)) {
+			return res;
+		}
+		std::vector<int> left_part;
+		for(unsigned int i = 1; i <= vertices_count_; ++i) {
+			if (marks[i] == marks[1])
+				left_part.push_back(i);
+		}
+
+		std::vector<int> colors(vertices_count_ + 1);
+		std::vector<int> matching(vertices_count_ + 1, -1);
+		
+		std::vector<bool> used = getAnyMatching(left_part, matching);
+		int color = 0;
+		for(auto u: left_part) {
+			if(!used[u]) 
+				tryKuhn(u, colors, matching, ++color);
+		}
+		
+		for(unsigned int v = 1; v <= vertices_count_; ++v){
+			if(matching[v] != -1) {
+				res.emplace_back(matching[v], v);
+			}
+		}
+
 		return res;
 	}
 };
@@ -791,6 +878,18 @@ public:
 		AdjacencyListGraph g = AdjacencyListGraph();
 		graph->feelGraph(&g);
 		return g.getEuleranTourEffective(v);
+	}
+
+	int checkBipart(std::vector<char> &marks) const {
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		return g.checkBipart(marks);
+	}
+
+	std::vector<std::pair<int, int> > getMaximumMatchingBipart() const {
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		return g.getMaximumMatchingBipart();
 	}
 };
 

@@ -1,6 +1,7 @@
+#include "Graph.h"
 #include <iostream>
 
-#include "Graph.h"
+
 
 #if _MSC_VER
 const std::string ADJACENCY_MATRIX = "samples/adjacency_matrix.txt";
@@ -17,11 +18,19 @@ const std::string TEMP_FILE = "../samples/temp.txt";
 int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
-	//auto ans = graph.getEuleranTourFleri();
-	auto ans = graph.getEuleranTourEffective();
-	for(auto v: ans) {
-		std::cout << v << " ";
+	
+	std::vector<std::pair<int, int>> bpm = graph.getMaximumMatchingBipart();
+
+	freopen("output.txt", "w", stdout);
+	for(const auto edge: bpm) {
+
+		std::cout << edge.first << " " << edge.second << std::endl;
 	}
+	//auto ans = graph.getEuleranTourFleri();
+	//auto ans = graph.getEuleranTourEffective();
+	//for(auto v: ans) {
+	//	std::cout << v << " ";
+	//}
 	//Graph tree = graph.getSpaingTreeBoruvka();
 	//			
 	//tree.transformToListOfEdges();
