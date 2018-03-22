@@ -23,7 +23,7 @@ public:
 			parent_[i] = i;
 
 	}
-	unsigned int find(unsigned int x) {
+	unsigned int find(const unsigned int x) {
 		if (x == parent_[x])
 			return x;
 		return parent_[x] = find(parent_[x]);
@@ -304,7 +304,6 @@ public:
 			}
 	}
 
-
 	AdjacencyListGraph* getSpaingTreePrima() {
 		AdjacencyListGraph* result = new AdjacencyListGraph(vertices_count_, 0, is_weighted_);
 
@@ -364,7 +363,7 @@ public:
 		return sizes;
 	}
 
-	void dfs(int v, int & timer, std::vector<bool> & visited, std::vector<int> & tin, std::vector<int> & fup, std::set<std::pair<int, int>> & bridges, const int parent = -1) {
+	void bridgeDfs(int v, int & timer, std::vector<bool> & visited, std::vector<int> & tin, std::vector<int> & fup, std::set<std::pair<int, int>> & bridges, const int parent = -1) {
 		visited[v] = true;
 		tin[v] = fup[v] = timer++;
 		for (const auto edge : graph_[v]) {
@@ -374,7 +373,7 @@ public:
 			if (visited[to])
 				fup[v] = std::min(fup[v], tin[to]);
 			else {
-				dfs(to, timer, visited, tin, fup, bridges, v);
+				bridgeDfs(to, timer, visited, tin, fup, bridges, v);
 				fup[v] = std::min(fup[v], fup[to]);
 				if (fup[to] > tin[v])
 					bridges.emplace(v, to);
@@ -388,7 +387,7 @@ public:
 		std::vector<int> fup(vertices_count_ + 1);
 		std::set<std::pair<int, int>> bridges;
 		int timer = 0;
-		dfs(v, timer, visited, tin, fup, bridges);
+		bridgeDfs(v, timer, visited, tin, fup, bridges);
 		for (const auto bridge : bridges) {
 			if ((bridge.first == u && bridge.second == v) || (bridge.first == v && bridge.second == u))
 				return true;
@@ -533,6 +532,46 @@ public:
 		}
 
 		return res;
+	}
+
+	struct Edge {
+		int from, to, capacity, flow;
+		Edge(const int from, const int to, const int capacity=0, const int flow = 0):from(from),to(to), capacity(capacity), flow(flow) {}
+	};
+
+
+
+	bool dfsDinitz(int v, int flow) {
+		return true;
+	}
+
+	bool bfsDinitz() {
+		return true;
+	}
+
+	AdjacencyListGraph* flowDinitz(int sourse, int sink) {
+		AdjacencyListGraph* result = new AdjacencyListGraph(vertices_count_, is_directional_, is_weighted_);
+		
+		std::vector<Edge> edges;
+
+		for(unsigned int u = 1; u <= vertices_count_; ++u) {
+			for(auto edge: graph_[u]) {
+				// TODO: Check another g
+				edges.emplace_back(u, edge.first, edge.second);
+				edges.emplace_back(edge.first, u);
+			}
+		}
+		std::vector<int> undeleted_ids(vertices_count_ + 1);
+		int flow = 0;
+		while (bfsDinitz()){
+			for (unsigned int i = 0; i <= vertices_count_; ++i) 
+				undeleted_ids[0];
+			while (const int pushed = dfsDinitz(sourse, std::numeric_limits<int>::max())) {
+				flow += pushed;
+			}
+		}
+
+		return result;
 	}
 };
 
@@ -708,10 +747,6 @@ public:
 
 
 };
-
-
-
-
 
 class Graph : public IGraph {
 	IGraph *graph = nullptr;
@@ -890,6 +925,20 @@ public:
 		AdjacencyListGraph g = AdjacencyListGraph();
 		graph->feelGraph(&g);
 		return g.getMaximumMatchingBipart();
+	}
+
+
+	 Graph flowFordFulkerson(int sourse, int sink) const {
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		//TODO: implement
+		return Graph(static_cast<IGraph *>(g.getSpaingTreePrima()));
+	}
+
+	 Graph flowDinitz(int sourse, int sink) const {
+		 AdjacencyListGraph g = AdjacencyListGraph();
+		 graph->feelGraph(&g);
+		 return Graph(static_cast<IGraph *>(g.flowDinitz(sourse, sink)));
 	}
 };
 
