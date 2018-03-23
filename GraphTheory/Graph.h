@@ -578,7 +578,7 @@ public:
 		return distances[sink] != std::numeric_limits<int>::max();
 	}
 
-	AdjacencyListGraph* flowDinitz(int source, int sink) {
+	AdjacencyListGraph* flowDinitz(const int source, const int sink) const {
 		AdjacencyListGraph* result = new AdjacencyListGraph(vertices_count_, is_directional_, is_weighted_);
 
 		std::vector<std::vector<int>> g_as_edge_ids(vertices_count_ + 1);
@@ -607,6 +607,52 @@ public:
 			result->addEdge(edges[i].from, edges[i].to, edges[i].flow);
 		}
 
+		return result;
+	}
+
+	int dfsFordFulkerson(int v, int min_capacity, int sink, int color, std::vector<int> &colors, std::vector<std::vector<int>> & g_as_edge_ids, std::vector<Edge> & edges) const {
+		if (v == sink)
+			return min_capacity;
+		colors[v] = color;
+		for(auto edge_id: g_as_edge_ids[v]) {
+			const int to = edges[edge_id].to;
+			if(colors[to] != color && edges[edge_id].flow < edges[edge_id].capacity) {
+				const int delta = dfsFordFulkerson(to, std::min(min_capacity, edges[edge_id].capacity - edges[edge_id].flow), sink, color, colors, g_as_edge_ids, edges);
+				if(delta > 0) {
+					edges[edge_id].flow += delta;
+					edges[edge_id^1].flow -= delta;
+					return delta;
+				}
+			}
+		}
+		return 0;
+	}
+
+	AdjacencyListGraph* flowFordFulkerson(const int source, const int sink) const {
+		AdjacencyListGraph* result = new AdjacencyListGraph(vertices_count_, is_directional_, is_weighted_);
+
+		std::vector<std::vector<int>> g_as_edge_ids(vertices_count_ + 1);
+		std::vector<Edge> edges;
+
+		for (unsigned int u = 1; u <= vertices_count_; ++u) {
+			for (auto edge : graph_[u]) {
+				g_as_edge_ids[u].push_back(static_cast<int>(edges.size()));
+				edges.emplace_back(u, edge.first, edge.second);
+				g_as_edge_ids[edge.first].push_back(static_cast<int>(edges.size()));
+				edges.emplace_back(edge.first, u);
+			}
+		}
+
+		int flow = 0;
+		std::vector<int> colors(vertices_count_ + 1, 0);
+		int color = 0;
+		while(const int pushed = dfsFordFulkerson(source, std::numeric_limits<int>::max(), sink, ++color, colors, g_as_edge_ids, edges)) {
+			flow += pushed;
+		}
+
+		for (unsigned int i = 0; i < edges.size(); i += 2) {
+			result->addEdge(edges[i].from, edges[i].to, edges[i].flow);
+		}
 
 		return result;
 	}
@@ -965,17 +1011,16 @@ public:
 	}
 
 
-	Graph flowFordFulkerson(int sourse, int sink) const {
+	Graph flowFordFulkerson(int source, int sink) const {
 		AdjacencyListGraph g = AdjacencyListGraph();
 		graph->feelGraph(&g);
-		//TODO: implement
-		return Graph(static_cast<IGraph *>(g.getSpaingTreePrima()));
+		return Graph(static_cast<IGraph *>(g.flowFordFulkerson(source, sink)));
 	}
 
-	Graph flowDinitz(int sourse, int sink) const {
+	Graph flowDinitz(int source, int sink) const {
 		AdjacencyListGraph g = AdjacencyListGraph();
 		graph->feelGraph(&g);
-		return Graph(static_cast<IGraph *>(g.flowDinitz(sourse, sink)));
+		return Graph(static_cast<IGraph *>(g.flowDinitz(source, sink)));
 	}
 };
 

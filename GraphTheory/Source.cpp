@@ -18,8 +18,8 @@ const std::string TEMP_FILE = "../samples/temp.txt";
 int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
-	
-	graph.flowDinitz(1, 4).writeGraph(TEMP_FILE);
+	graph.flowFordFulkerson(1, 4).writeGraph(TEMP_FILE);
+	//graph.flowDinitz(1, 4).writeGraph(TEMP_FILE);
 	
 	//std::vector<std::pair<int, int>> bpm = graph.getMaximumMatchingBipart();
 
