@@ -19,13 +19,15 @@ int main() {
 	Graph graph;
 	graph.readGraph(EDGES_LIST);
 	
-	std::vector<std::pair<int, int>> bpm = graph.getMaximumMatchingBipart();
+	graph.flowDinitz(1, 4).writeGraph(TEMP_FILE);
+	
+	//std::vector<std::pair<int, int>> bpm = graph.getMaximumMatchingBipart();
 
-	freopen("output.txt", "w", stdout);
-	for(const auto edge: bpm) {
+	//freopen("output.txt", "w", stdout);
+	//for(const auto edge: bpm) {
 
-		std::cout << edge.first << " " << edge.second << std::endl;
-	}
+	//	std::cout << edge.first << " " << edge.second << std::endl;
+	//}
 	//auto ans = graph.getEuleranTourFleri();
 	//auto ans = graph.getEuleranTourEffective();
 	//for(auto v: ans) {

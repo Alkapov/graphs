@@ -122,6 +122,7 @@ public:
 				for (unsigned int to = 1; to <= vertices_count_; ++to) {
 					stream << graph_[from][to];
 					if (to == vertices_count_) stream << std::endl;
+					else stream << " ";
 				}
 			}
 		}
@@ -253,7 +254,7 @@ public:
 				for (const auto to : graph_[i]) {
 					if (!is_first) stream << " ";
 					stream << to.first;
-					if (is_weighted_) stream << to.second;
+					if (is_weighted_) stream << " " << to.second;
 					is_first = false;
 				}
 				stream << std::endl;
@@ -477,10 +478,10 @@ public:
 	}
 
 	std::vector<bool> getAnyMatching(std::vector<int> & left_part, std::vector<int> & matching) const {
-		std::vector<bool> used(vertices_count_  + 1);
-		for(auto u: left_part) {
-			for(const auto edge: graph_[u]) {
-				if(matching[edge.first] == -1) {
+		std::vector<bool> used(vertices_count_ + 1);
+		for (auto u : left_part) {
+			for (const auto edge : graph_[u]) {
+				if (matching[edge.first] == -1) {
 					matching[edge.first] = u;
 					used[u] = true;
 					break;
@@ -493,9 +494,9 @@ public:
 	bool tryKuhn(int v, std::vector<int> & colors, std::vector<int> & matching, int color) const {
 		if (colors[v] == color) return false;
 		colors[v] = color;
-		for(const auto edge: graph_[v]) {
+		for (const auto edge : graph_[v]) {
 			const int to = edge.first;
-			if(matching[to] == -1 || tryKuhn(matching[to], colors, matching, color)) {
+			if (matching[to] == -1 || tryKuhn(matching[to], colors, matching, color)) {
 				matching[to] = v;
 				return true;
 			}
@@ -506,27 +507,27 @@ public:
 	std::vector<std::pair<int, int> > getMaximumMatchingBipart() const {
 		std::vector<std::pair<int, int> > res;
 		std::vector<char> marks(vertices_count_ + 1);
-		if(!checkBipart(marks)) {
+		if (!checkBipart(marks)) {
 			return res;
 		}
 		std::vector<int> left_part;
-		for(unsigned int i = 1; i <= vertices_count_; ++i) {
+		for (unsigned int i = 1; i <= vertices_count_; ++i) {
 			if (marks[i] == marks[1])
 				left_part.push_back(i);
 		}
 
 		std::vector<int> colors(vertices_count_ + 1);
 		std::vector<int> matching(vertices_count_ + 1, -1);
-		
+
 		std::vector<bool> used = getAnyMatching(left_part, matching);
 		int color = 0;
-		for(auto u: left_part) {
-			if(!used[u]) 
+		for (auto u : left_part) {
+			if (!used[u])
 				tryKuhn(u, colors, matching, ++color);
 		}
-		
-		for(unsigned int v = 1; v <= vertices_count_; ++v){
-			if(matching[v] != -1) {
+
+		for (unsigned int v = 1; v <= vertices_count_; ++v) {
+			if (matching[v] != -1) {
 				res.emplace_back(matching[v], v);
 			}
 		}
@@ -536,40 +537,76 @@ public:
 
 	struct Edge {
 		int from, to, capacity, flow;
-		Edge(const int from, const int to, const int capacity=0, const int flow = 0):from(from),to(to), capacity(capacity), flow(flow) {}
+		Edge(const int from, const int to, const int capacity = 0, const int flow = 0) :from(from), to(to), capacity(capacity), flow(flow) {}
 	};
 
 
 
-	bool dfsDinitz(int v, int flow) {
-		return true;
+	int dfsDinitz(int v, int min_capacity, int sink, std::vector<int> &distances, std::vector<int> & undeleted_ids, std::vector<std::vector<int>> & g_as_edge_ids, std::vector<Edge> & edges) const {
+		if (min_capacity == 0 || v == sink)
+			return min_capacity;
+		for (; undeleted_ids[v] < static_cast<int>(g_as_edge_ids[v].size()); ++undeleted_ids[v]) {
+			const int id = g_as_edge_ids[v][undeleted_ids[v]];
+			const int to = edges[id].to;
+			if (distances[to] != distances[v] + 1)  continue;
+			const int pushed = dfsDinitz(to, std::min(min_capacity, edges[id].capacity - edges[id].flow), sink, distances, undeleted_ids, g_as_edge_ids, edges);
+			if (pushed) {
+				edges[id].flow += pushed;
+				edges[id ^ 1].flow -= pushed;
+				return pushed;
+			}
+		}
+		return 0;
 	}
 
-	bool bfsDinitz() {
-		return true;
+	bool bfsDinitz(const int source, const int sink, std::vector<int> &distances, std::vector<std::vector<int>> & g_as_edge_ids, std::vector<Edge> & edges) const {
+		for (unsigned int i = 0; i <= vertices_count_; ++i)
+			distances[i] = std::numeric_limits<int>::max();
+		distances[source] = 0;
+		std::queue<int> que;
+		que.push(source);
+		while (!que.empty() && distances[sink] == std::numeric_limits<int>::max()) {
+			const int v = que.front(); que.pop();
+			for (const auto edge_id : g_as_edge_ids[v]) {
+				int to = edges[edge_id].to;
+				if (distances[to] == std::numeric_limits<int>::max() && edges[edge_id].flow < edges[edge_id].capacity) {
+					que.push(to);
+					distances[to] = distances[v] + 1;
+				}
+			}
+		}
+		return distances[sink] != std::numeric_limits<int>::max();
 	}
 
-	AdjacencyListGraph* flowDinitz(int sourse, int sink) {
+	AdjacencyListGraph* flowDinitz(int source, int sink) {
 		AdjacencyListGraph* result = new AdjacencyListGraph(vertices_count_, is_directional_, is_weighted_);
-		
+
+		std::vector<std::vector<int>> g_as_edge_ids(vertices_count_ + 1);
 		std::vector<Edge> edges;
 
-		for(unsigned int u = 1; u <= vertices_count_; ++u) {
-			for(auto edge: graph_[u]) {
-				// TODO: Check another g
+		for (unsigned int u = 1; u <= vertices_count_; ++u) {
+			for (auto edge : graph_[u]) {
+				g_as_edge_ids[u].push_back(static_cast<int>(edges.size()));
 				edges.emplace_back(u, edge.first, edge.second);
+				g_as_edge_ids[edge.first].push_back(static_cast<int>(edges.size()));
 				edges.emplace_back(edge.first, u);
 			}
 		}
 		std::vector<int> undeleted_ids(vertices_count_ + 1);
+		std::vector<int> distances(vertices_count_ + 1, std::numeric_limits<int>::max());
 		int flow = 0;
-		while (bfsDinitz()){
-			for (unsigned int i = 0; i <= vertices_count_; ++i) 
-				undeleted_ids[0];
-			while (const int pushed = dfsDinitz(sourse, std::numeric_limits<int>::max())) {
+		while (bfsDinitz(source, sink, distances, g_as_edge_ids, edges)) {
+			for (unsigned int i = 0; i <= vertices_count_; ++i)
+				undeleted_ids[i] = 0;
+			while (const int pushed = dfsDinitz(source, std::numeric_limits<int>::max(), sink, distances, undeleted_ids, g_as_edge_ids, edges)) {
 				flow += pushed;
 			}
 		}
+		
+		for(unsigned int i = 0; i < edges.size(); i+=2) {
+			result->addEdge(edges[i].from, edges[i].to, edges[i].flow);
+		}
+
 
 		return result;
 	}
@@ -928,17 +965,17 @@ public:
 	}
 
 
-	 Graph flowFordFulkerson(int sourse, int sink) const {
+	Graph flowFordFulkerson(int sourse, int sink) const {
 		AdjacencyListGraph g = AdjacencyListGraph();
 		graph->feelGraph(&g);
 		//TODO: implement
 		return Graph(static_cast<IGraph *>(g.getSpaingTreePrima()));
 	}
 
-	 Graph flowDinitz(int sourse, int sink) const {
-		 AdjacencyListGraph g = AdjacencyListGraph();
-		 graph->feelGraph(&g);
-		 return Graph(static_cast<IGraph *>(g.flowDinitz(sourse, sink)));
+	Graph flowDinitz(int sourse, int sink) const {
+		AdjacencyListGraph g = AdjacencyListGraph();
+		graph->feelGraph(&g);
+		return Graph(static_cast<IGraph *>(g.flowDinitz(sourse, sink)));
 	}
 };
 
