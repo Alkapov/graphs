@@ -13,12 +13,17 @@ const std::string ADJACENCY_MATRIX = "../samples/adjacency_matrix.txt";
 const std::string ADJACENCY_LIST = "../samples/adjacency_list.txt";
 const std::string EDGES_LIST = "../samples/edges_list.txt";
 const std::string TEMP_FILE = "../samples/temp.txt";
+const std::string INPUT = "../samples/input.txt";
 #endif
 
 int main() {
 	Graph graph;
-	graph.readGraph(EDGES_LIST);
-	graph.flowFordFulkerson(1, 4).writeGraph(TEMP_FILE);
+	graph.readGraph(INPUT);
+	Graph c = graph.getSpaingTreePrima();
+    c.writeGraph(TEMP_FILE);
+	//c.transformToListOfEdges();
+   // c.writeGraph(TEMP_FILE);
+
 	//graph.flowDinitz(1, 4).writeGraph(TEMP_FILE);
 	
 	//std::vector<std::pair<int, int>> bpm = graph.getMaximumMatchingBipart();

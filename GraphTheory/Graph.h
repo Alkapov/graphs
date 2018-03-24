@@ -231,13 +231,16 @@ public:
 			int weight = 1;
 			int to = 0;
 			std::string line;
-			for (unsigned int from = 1; from <= vertices_count_; ++from) {
+			for (unsigned int from = 0; from <= vertices_count_; ++from) {
 				std::getline(stream, line);
 				std::vector<int> numbers = extractIntSequence(line);
 				for (unsigned int idx = 0; idx < numbers.size(); ++idx) {
 					to = numbers[idx];
 					if (is_weighted_) weight = numbers[++idx];
-					graph_[from][to] = weight;
+					graph_[from].emplace(to, weight);
+					if(!is_directional_)
+						graph_[to].emplace(from, weight);
+
 				}
 			}
 		}
@@ -311,8 +314,8 @@ public:
 		std::set<std::pair<int, int>> prior;
 		std::vector<int> dists(vertices_count_ + 1, std::numeric_limits<int>::max());
 		std::vector<int> ends(vertices_count_ + 1, -1);
-		dists[0] = 0;
-		prior.emplace(0, 0);
+		dists[1] = 0;
+		prior.emplace(0, 1);
 		while (!prior.empty()) {
 			if (prior.empty())
 				exit(1); // graph has few cc
