@@ -21,8 +21,8 @@ int main() {
 	graph.readGraph(INPUT);
 	Graph c = graph.getSpaingTreePrima();
     c.writeGraph(TEMP_FILE);
-	//c.transformToListOfEdges();
-   // c.writeGraph(TEMP_FILE);
+	c.transformToListOfEdges();
+   c.writeGraph(TEMP_FILE);
 
 	//graph.flowDinitz(1, 4).writeGraph(TEMP_FILE);
 	

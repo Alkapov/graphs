@@ -702,7 +702,6 @@ public:
 				int from = edge.first.first;
 				int to = edge.first.second;
 				const int weight = edge.second;
-				++from, ++to;
 				stream << from << " " << to;
 				if (is_weighted_) stream << " " << weight;
 				stream << std::endl;
