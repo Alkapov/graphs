@@ -667,6 +667,13 @@ class EdgeListGraph : public IGraph {
 	unsigned int vertices_count_ = 0;
 	unsigned int is_directional_ = 0;
 	unsigned int is_weighted_ = 0;
+
+
+	void rearange(int &from, int &to) const {
+		const int tmp = std::max(from, to);
+		from = std::min(from, to);
+		to = tmp;
+	}
 public:
 
 	EdgeListGraph(const unsigned int vectices_count = 0, const unsigned int is_directional = 0, const unsigned int is_weighted = 0) {
@@ -686,8 +693,9 @@ public:
 			for (unsigned int i = 1; i <= edges_count; ++i) {
 				stream >> from >> to;
 				if (is_weighted_) stream >> weight;
+				if (!is_directional_)
+					rearange(from, to);
 				graph_.emplace(std::make_pair(from, to), weight);
-				if (!is_directional_) graph_.emplace(std::make_pair(to, from), weight);
 			}
 		}
 		stream.close();
@@ -711,29 +719,26 @@ public:
 	}
 
 	void addEdge(int from, int to, int weight) override {
+		if (!is_directional_)
+			rearange(from, to);
 		graph_.emplace(std::make_pair(from, to), weight);
-		if (!is_directional_) graph_.emplace(std::make_pair(to, from), weight);
+
 	}
 
 	void removeEdge(int from, int to) override {
-		auto edge = graph_.find(std::make_pair(from, to));
+		if (!is_directional_)
+			rearange(from, to);
+		const auto edge = graph_.find(std::make_pair(from, to));
 		if (edge != graph_.end())
 			graph_.erase(edge);
-		if (!is_directional_) {
-			edge = graph_.find(std::make_pair(to, from));
-			if (edge != graph_.end())
-				graph_.erase(edge);
-		}
 	}
 
 	int changeEdge(int from, int to, const int new_weight) override {
-		auto edge = graph_.find(std::make_pair(from, to));
+		if (!is_directional_)
+			rearange(from, to);
+		const auto edge = graph_.find(std::make_pair(from, to));
 		const int old_weight = edge->second;
 		edge->second = new_weight;
-		if (!is_directional_) {
-			edge = graph_.find(std::make_pair(to, from));
-			edge->second = new_weight;
-		}
 		return old_weight;
 	}
 
