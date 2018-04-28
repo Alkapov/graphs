@@ -822,9 +822,14 @@ public:
 
 			for (unsigned int i = 1; i <= vertices_count_; ++i) {
 				if (steps[i] == step) {
-					result->addEdge(min_vals[i].second.first, min_vals[i].second.second, min_vals[i].first);
-					dsu.unite(min_vals[i].second.first, min_vals[i].second.second);
-					state_changed = true;
+					const int from = min_vals[i].second.first;
+					const int to = min_vals[i].second.second;
+					const int weight = min_vals[i].first;
+					if(dsu.find(from) != dsu.find(to)) {
+						result->addEdge(from, to, weight);
+						dsu.unite(from, to);
+						state_changed = true;
+					}
 				}
 			}
 
