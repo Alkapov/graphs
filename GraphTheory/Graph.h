@@ -456,6 +456,8 @@ public:
 		std::queue<int> qu;
 		if (vertices_count_ < 2)
 			return 0;
+//		if(marks.size() != vertices_count_ + 1)
+//			marks.resize(vertices_count_ + 1);
 		for (unsigned int i = 1; i <= vertices_count_; ++i) {
 			marks[i] = 'u';
 		}
@@ -469,6 +471,7 @@ public:
 						const int to = edge.first;
 						if (marks[to] == 'u') {
 							marks[to] = marks[v] == 'a' ? 'b' : 'a';
+							qu.push(to);
 						}
 						else if (marks[to] == marks[v]) {
 							return 0;
