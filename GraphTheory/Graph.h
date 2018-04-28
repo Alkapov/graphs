@@ -808,14 +808,23 @@ public:
 				const int to = edge.first.second;
 				const int weight = edge.second;
 				const unsigned int parent = dsu.find(from);
-
-				if (dsu.find(to) != parent) {
+				const unsigned int to_parent = dsu.find(to);
+				if (to_parent != parent) {
 					if (steps[parent] != step) {
 						steps[parent] = step;
 						min_vals[parent] = std::make_pair(weight, std::make_pair(from, to));
 					}
 					if (weight < min_vals[parent].first) {
 						min_vals[parent] = std::make_pair(weight, std::make_pair(from, to));
+					}
+					if(!is_directional_) {
+						if (steps[to_parent] != step) {
+							steps[to_parent] = step;
+							min_vals[to_parent] = std::make_pair(weight, std::make_pair(from, to));
+						}
+						if (weight < min_vals[to_parent].first) {
+							min_vals[to_parent] = std::make_pair(weight, std::make_pair(from, to));
+						}
 					}
 				}
 			}
