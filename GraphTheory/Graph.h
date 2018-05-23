@@ -981,22 +981,16 @@ public:
 		int odd_number = 0;
 		int result = 1;
 		for (unsigned int i = 1; i < degrees.size(); ++i) {
-			if (degrees[i] % 2)
-				++odd_number;
-			else
+			if (degrees[i] % 2) {
 				result = i;
+				++odd_number;
+            		}
 			big_components += components_sizes[i] > 1;
 		}
 		if (odd_number > 2 || big_components > 1)
 			return 0;
 		circle_exist = odd_number == 0;
 
-		for (unsigned int i = 1; i < degrees.size(); ++i) {
-			if (degrees[i] % 1) {
-				result = i;
-				break;
-			}
-		}
 
 		return result;
 	}
